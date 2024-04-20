@@ -194,13 +194,36 @@ export class Stroke2D extends gfx.Node3
 
         // Hint #1: The Ray class in GopherGfx has an intersectsSphere() routine that you can use to
         // project the stroke2D onto a "sky sphere".
+        const skySphere = new gfx.BoundingSphere();
+        skySphere.center = new gfx.Vector3(0, 0, 0);
+        skySphere.radius = skyRadius;
 
+        const skyStrokeVertices: gfx.Vector3[] = [];
+
+        for (let i = 0; i < this.path.length; i ++) {
+            const ray = new gfx.Ray3();
+            ray.setPickRay(this.path[i], camera);
+
+            const intersection = ray.intersectsSphere(skySphere);
+
+            if (intersection) {
+                skyStrokeVertices.push(intersection);
+
+            }
+        }
+
+        // skyStrokeIndices = this.indices;
+
+        const skyStrokeMesh = new gfx.Mesh3();
+        skyStrokeMesh.setVertices(skyStrokeVertices);
+        skyStrokeMesh.setIndices(this.indices);
         // Hint #2: When creating a new Mesh3, you can setup its material to be the same color as the stroke2D with:
         // newMesh.material = new gfx.UnlitMaterial();
         // newMesh.material.setColor(stroke2D.color);
+        skyStrokeMesh.material = new gfx.UnlitMaterial;
+        skyStrokeMesh.material.setColor(this.color);
 
-
-        return new gfx.Mesh3();
+        return skyStrokeMesh;
     }
 
 
@@ -227,12 +250,34 @@ export class Stroke2D extends gfx.Node3
 
         // Hint #1: To get the position of the camera in world coordinates, you can use the camera's localToWorld matrix
         // to transform the origin of camera space (0,0,0) to world space.
+        const faceDirection = gfx.Vector3.subtract(camera.position, anchorPointWorld);
+        faceDirection.y = 0; 
+        const normalizedFaceDirection = gfx.Vector3.normalize(faceDirection); 
+    
+        const upVector = new gfx.Vector3(0, 1, 0);
+        const rightVector = gfx.Vector3.normalize(gfx.Vector3.cross(upVector, normalizedFaceDirection));
+    
+        const planeNormal = gfx.Vector3.normalize(gfx.Vector3.cross(rightVector, upVector));
+    
+        const billboardVertices: gfx.Vector3[] = [];
+        this.path.forEach(point => {
+            const localPoint = new gfx.Vector3(point.x, point.y, 0);
+            const offsetX = gfx.Vector3.multiplyScalar(rightVector, localPoint.x);
+            const offsetY = gfx.Vector3.multiplyScalar(upVector, localPoint.y);
+            const projectedPoint = gfx.Vector3.add(anchorPointWorld, gfx.Vector3.add(offsetX, offsetY));
+            billboardVertices.push(projectedPoint);
+        });
+
 
         // Hint #2: When creating a new Mesh3, you can setup it's material to be the same color as the stroke2D with:
         // newMesh.material = new gfx.UnlitMaterial();
         // newMesh.material.setColor(stroke2D.color);
+        const billboardMesh = new gfx.Mesh3();
+        billboardMesh.setVertices(billboardVertices);
+        billboardMesh.setIndices(this.indices);
+        billboardMesh.material = new gfx.UnlitMaterial;
+        billboardMesh.material.setColor(this.color);
 
-
-        return new Billboard(new gfx.Vector3(0,0,0), new gfx.Vector3(0,0,0), new gfx.Mesh3());
+        return new Billboard(anchorPointWorld, planeNormal, billboardMesh);
     }
 }

@@ -82,14 +82,37 @@ export class Ground extends gfx.Mesh3
 
         // There are 3 major steps to the algorithm:
         // 1. Define a plane to project the stroke onto.
+        const strokeDirection = gfx.Vector3.subtract(groundEndPoint, groundStartPoint);
+        const VerticalVec = new gfx.Vector3(0, 1, 0);
+        const projectionPlaneNormal = gfx.Vector3.normalize(gfx.Vector3.cross(strokeDirection, VerticalVec));
+        const projectionPlane = new gfx.Plane3(groundStartPoint, projectionPlaneNormal); 
         // 2. Project the user's stroke onto the projection plane.
+        const silhouetteCurve: gfx.Vector3[] = stroke2D.path.map(point => {
+            const ray = new gfx.Ray3();
+            ray.setPickRay(point, camera);
+            const intersection = ray.intersectsPlane(projectionPlane);
+            if (intersection) {
+                return intersection;  
+            }
+            else {
+                return new gfx.Vector3();
+            }
+        });
+
         // 3. Loop through all of the vertices of the ground mesh, and adjust the height of each based on 
         // the equations in section 4.5 of the paper.  Note, the equations rely upon a function
         // h(), and we have implemented that for you as computeH() defined below.
+        this.vertices.forEach(vertex => {
+            const d = Math.abs(projectionPlane.distanceTo(vertex));
+            const closesPlanePoint = projectionPlane.project(vertex);
+            const h = this.computeH(closesPlanePoint, silhouetteCurve, projectionPlane);
+            const Wd = Math.max(0,1 - Math.pow(d/5, 2));
 
-        
+            if (h != 0) {
+                vertex.y = (1 - Wd) * vertex.y + Wd * h;
+            }//else do nothing
 
-
+        });
         // After computing new values for the vertices, re-assign them to the mesh to push them onto
         // the graphics card and recompute new vertex normals.
         this.setVertices(this.vertices);
