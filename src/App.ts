@@ -209,12 +209,9 @@ export class App extends gfx.GfxApp
                 // Adjust camera height based on the elevation of the ground
                 if (groundIntersection) {
                     const cameraHeightconstant = 1.0;
-                    this.camera.position.y = groundIntersection.y + cameraHeightconstant
-                    this.cameraHeight = groundIntersection.y + cameraHeightconstant;
+                    this.camera.position.y = groundIntersection.y + cameraHeightconstant;
+    
                 }
-
-                this.camera.lookAt(new gfx.Vector3(this.camera.position.x, this.cameraHeight,
-                    this.camera.position.z));
             }
         }
     }
