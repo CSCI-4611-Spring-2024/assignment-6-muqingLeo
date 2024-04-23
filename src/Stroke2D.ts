@@ -194,35 +194,40 @@ export class Stroke2D extends gfx.Node3
 
         // Hint #1: The Ray class in GopherGfx has an intersectsSphere() routine that you can use to
         // project the stroke2D onto a "sky sphere".
+                // skyStrokeIndices = this.indices;
+        const skyStrokeMesh = new gfx.Mesh3();
         const skySphere = new gfx.BoundingSphere();
-        skySphere.center = new gfx.Vector3(0, 0, 0);
         skySphere.radius = skyRadius;
 
         const skyStrokeVertices: gfx.Vector3[] = [];
 
-        for (let i = 0; i < this.path.length; i ++) {
+        for (let i = 0; i < this.vertices.length; i ++) {
+            const point = this.vertices[i];
+            const point3D = new gfx.Vector3(point.x, point.y, -0.999);
+
             const ray = new gfx.Ray3();
-            ray.setPickRay(this.path[i], camera);
+            ray.setPickRay(point, camera)
 
             const intersection = ray.intersectsSphere(skySphere);
 
             if (intersection) {
-                skyStrokeVertices.push(intersection);
-
+                console.log("Intersection: ", intersection);
+                skyStrokeVertices.push(intersection)
+            }
+            else {
+                console.log("No intersection for point: ", this.path[i]);
             }
         }
-
-        // skyStrokeIndices = this.indices;
-
-        const skyStrokeMesh = new gfx.Mesh3();
+ 
         skyStrokeMesh.setVertices(skyStrokeVertices);
         skyStrokeMesh.setIndices(this.indices);
         // Hint #2: When creating a new Mesh3, you can setup its material to be the same color as the stroke2D with:
         // newMesh.material = new gfx.UnlitMaterial();
         // newMesh.material.setColor(stroke2D.color);
-        skyStrokeMesh.material = new gfx.UnlitMaterial;
-        skyStrokeMesh.material.setColor(this.color);
-
+        skyStrokeMesh.material = new gfx.UnlitMaterial();
+        skyStrokeMesh.material.setColor(this.color)
+        skyStrokeMesh.visible = true;
+        
         return skyStrokeMesh;
     }
 
@@ -260,12 +265,17 @@ export class Stroke2D extends gfx.Node3
         const planeNormal = gfx.Vector3.normalize(gfx.Vector3.cross(rightVector, upVector));
     
         const billboardVertices: gfx.Vector3[] = [];
-        this.path.forEach(point => {
-            const localPoint = new gfx.Vector3(point.x, point.y, 0);
-            const offsetX = gfx.Vector3.multiplyScalar(rightVector, localPoint.x);
-            const offsetY = gfx.Vector3.multiplyScalar(upVector, localPoint.y);
-            const projectedPoint = gfx.Vector3.add(anchorPointWorld, gfx.Vector3.add(offsetX, offsetY));
-            billboardVertices.push(projectedPoint);
+        this.vertices.forEach(point => {
+            const point3D = new gfx.Vector3(point.x, point.y, -0.999);
+            const ray = new gfx.Ray3();
+            ray.setPickRay(point3D, camera);  // Assuming setPickRay can handle this conversion directly
+        
+            // Calculate the intersection of the ray with the plane
+            const t = gfx.Vector3.dot(gfx.Vector3.subtract(anchorPointWorld, ray.origin), planeNormal) / gfx.Vector3.dot(ray.direction, planeNormal);
+            if (t > 0) { // Ensure the intersection is in front of the ray origin
+            const intersection = gfx.Vector3.add(ray.origin, gfx.Vector3.multiplyScalar(ray.direction, t));
+            billboardVertices.push(intersection);
+        }
         });
 
 

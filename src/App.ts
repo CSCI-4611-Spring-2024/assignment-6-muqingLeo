@@ -201,15 +201,16 @@ export class App extends gfx.GfxApp
                 // screen).  So, you will want to use the ray set() method, not setPickRay().
 
                 // Create a directly downward-cast ray based on Camera's position in X and Z
-                const downwardRay = new gfx.Ray3(this.camera.position, new gfx.Vector3(0, -1, 0));
-
+                const downwardRay = new gfx.Ray3();
+                downwardRay.set(this.camera.position, new gfx.Vector3(0, -1,0))
                 // Performing intersection test against triangles
                 const groundIntersection =  downwardRay.intersectsTriangle(vertex1, vertex2, vertex3);
 
                 // Adjust camera height based on the elevation of the ground
                 if (groundIntersection) {
                     const cameraHeightconstant = 1.0;
-                    this.camera.position.y = groundIntersection.y + cameraHeightconstant;
+                    this.camera.position.y = groundIntersection.y + cameraHeightconstant
+                    this.cameraHeight = groundIntersection.y + cameraHeightconstant;
                 }
 
                 this.camera.lookAt(new gfx.Vector3(this.camera.position.x, this.cameraHeight,
