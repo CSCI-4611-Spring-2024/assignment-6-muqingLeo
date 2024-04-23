@@ -255,29 +255,28 @@ export class Stroke2D extends gfx.Node3
 
         // Hint #1: To get the position of the camera in world coordinates, you can use the camera's localToWorld matrix
         // to transform the origin of camera space (0,0,0) to world space.
-        const faceDirection = gfx.Vector3.subtract(camera.position, anchorPointWorld);
+        const faceDirection = gfx.Vector3.subtract(
+            camera.localToWorldMatrix.transformPoint(new gfx.Vector3(0,0,0)), anchorPointWorld);
         faceDirection.y = 0; 
         const normalizedFaceDirection = gfx.Vector3.normalize(faceDirection); 
     
         const upVector = new gfx.Vector3(0, 1, 0);
         const rightVector = gfx.Vector3.normalize(gfx.Vector3.cross(upVector, normalizedFaceDirection));
-    
         const planeNormal = gfx.Vector3.normalize(gfx.Vector3.cross(rightVector, upVector));
-    
+
+        const projectionPlane = new gfx.Plane3(anchorPointWorld, planeNormal);
+
         const billboardVertices: gfx.Vector3[] = [];
         this.vertices.forEach(point => {
-            const point3D = new gfx.Vector3(point.x, point.y, -0.999);
+            const point2D = new gfx.Vector2(point.x, point.y);
             const ray = new gfx.Ray3();
-            ray.setPickRay(point3D, camera);  // Assuming setPickRay can handle this conversion directly
-        
+            ray.setPickRay(point2D, camera); 
             // Calculate the intersection of the ray with the plane
-            const t = gfx.Vector3.dot(gfx.Vector3.subtract(anchorPointWorld, ray.origin), planeNormal) / gfx.Vector3.dot(ray.direction, planeNormal);
-            if (t > 0) { // Ensure the intersection is in front of the ray origin
-            const intersection = gfx.Vector3.add(ray.origin, gfx.Vector3.multiplyScalar(ray.direction, t));
-            billboardVertices.push(intersection);
-        }
+            const intersection = ray.intersectsPlane(projectionPlane);
+            if (intersection){
+                billboardVertices.push(intersection);
+            }
         });
-
 
         // Hint #2: When creating a new Mesh3, you can setup it's material to be the same color as the stroke2D with:
         // newMesh.material = new gfx.UnlitMaterial();
